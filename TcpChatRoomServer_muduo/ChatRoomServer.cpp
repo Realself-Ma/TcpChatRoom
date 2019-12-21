@@ -7,9 +7,9 @@ ChatRoomServer::ChatRoomServer(EventLoop* loop,const InetAddress& listenAddr):co
 }
 void ChatRoomServer::broadcast(const std::string& msg)
 {
-	for(std::map<TcpConnectionPtr,int>::iterator it=_connections.begin();it!=_connections.end();++it)
+	for(std::set<TcpConnectionPtr>::iterator it=_connections.begin();it!=_connections.end();++it)
 	{
-		(it->first)->send(msg);
+		(*it)->send(msg);
 	}
 }
 void ChatRoomServer::send(const TcpConnectionPtr& conn,string& sendmsg,Timestamp time)
@@ -34,12 +34,12 @@ void ChatRoomServer::onConnection(const TcpConnectionPtr& conn)
 	
 	if(conn->connected())
 	{
-		_connections.insert(make_pair(conn,++connid));
+		_connections.insert(conn);
 	}
 	else
 	{
 		--connid;
-		_Mysql.doOffline(conn,_connections);
+		_Mysql.doOffline(conn);
 		_connections.erase(conn);
 	}
 }
@@ -47,7 +47,7 @@ void ChatRoomServer::onMessage(const TcpConnectionPtr& conn,Buffer *buf,Timestam
 {
 	string msg(buf->retrieveAllAsString());
 	
-	string sendmsg=_Mysql.parseMessageAndOperation(_connections,conn,msg);
+	string sendmsg=_Mysql.parseMessageAndOperation(conn,msg);
 	send(conn,sendmsg,time);
 	if(sendmsg!="")
 	{

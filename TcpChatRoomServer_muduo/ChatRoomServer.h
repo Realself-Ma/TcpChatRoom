@@ -6,7 +6,7 @@
 #include "MysqlDataBase.h"
 #include "command.h"
 #include <stdlib.h>
-#include <map>
+#include <set>
 using std::placeholders::_1;
 using std::placeholders::_2;
 using std::placeholders::_3;
@@ -24,9 +24,9 @@ private:
 	int connid;
 	void send(const TcpConnectionPtr& conn,string& sendmsg,Timestamp time);
 	void broadcast(const string& msg);
-	typedef std::map<TcpConnectionPtr,int> ConnectionMap;
+	typedef std::set<TcpConnectionPtr> ConnectionSet;
 	MysqlDataBase _Mysql;
 	TcpServer _server;
-	ConnectionMap _connections;
+	ConnectionSet _connections;
 };
 #endif	//CHATROOMSERVER_H

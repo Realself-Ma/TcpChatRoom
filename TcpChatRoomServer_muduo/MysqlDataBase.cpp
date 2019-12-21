@@ -24,7 +24,7 @@ int MysqlDataBase::connect()
 }
 int MysqlDataBase::sqlQuery(const char *query)
 {
-	int res=mysql_query(mysql, "set names utf8");
+	int res=mysql_query(mysql, "set names utf8");//设置查询字符集为utf8
 	if(res!=0)
 	{
 		LOG_INFO<<"mysql_query set utf8 error";
@@ -37,12 +37,11 @@ int MysqlDataBase::sqlQuery(const char *query)
     }
     return 0;
 }
-void MysqlDataBase::doOffline(const TcpConnectionPtr& conn,const ConnectionMap& connMap)
+void MysqlDataBase::doOffline(const TcpConnectionPtr& conn)
 {
-	auto it=connMap.find(conn);
-	int connid=it->second;
+	auto it=nameMap_.find(conn);
 	char query[100];
-	snprintf(query,sizeof(query),"select online from UserInfo where connid=%d",connid);
+	snprintf(query,sizeof(query),"select online from UserInfo where username='%s'",(it->second).c_str());
 	int ret=sqlQuery(query);
 	if(ret==-1)
 	{
@@ -53,7 +52,7 @@ void MysqlDataBase::doOffline(const TcpConnectionPtr& conn,const ConnectionMap& 
 	if(sqlrow&&(atoi(sqlrow[0])==1))
 	{
 		memset(query,0,sizeof(query));
-		snprintf(query,sizeof(query),"update UserInfo set online=%d where connid=%d",0,connid);
+		snprintf(query,sizeof(query),"update UserInfo set online=%d where username='%s'",0,(it->second).c_str());
 		ret=sqlQuery(query);
 		if(ret==-1)
 		{
@@ -61,8 +60,9 @@ void MysqlDataBase::doOffline(const TcpConnectionPtr& conn,const ConnectionMap& 
 		}
 	}
 	mysql_free_result(res_ptr);
+	nameMap_.erase(conn);
 }
-string MysqlDataBase::parseMessageAndOperation(const ConnectionMap& connMap,const muduo::net::TcpConnectionPtr& conn,const string& buff)
+string MysqlDataBase::parseMessageAndOperation(const TcpConnectionPtr& conn,const string& buff)
 {
     std::string  strclientmsg;
     if(buff[0] == REGISTER)
@@ -98,12 +98,8 @@ string MysqlDataBase::parseMessageAndOperation(const ConnectionMap& connMap,cons
         else
         {
             memset(query, 0, sizeof(query));
-            auto it=connMap.find(conn);
-            if(it==connMap.end())
-            {
-                LOG_ERROR<<"Map find error";
-            }
-            sprintf(query, "insert into UserInfo values('%s', '%s',%d,%d,%d)", name, password,0,0,it->second);
+            
+            sprintf(query, "insert into UserInfo values('%s', '%s',%d,%d)", name, password,0,0);
 
             ret = sqlQuery(query);
             if(ret == -1)
@@ -131,7 +127,7 @@ string MysqlDataBase::parseMessageAndOperation(const ConnectionMap& connMap,cons
                     LOG_ERROR<<"insert error :"<<mysql_error(mysql);
                 }
                 strclientmsg += "REGISTER SUCCESS";
-
+                // continue;
                 if(mysql_errno(mysql))
                 {
                     LOG_ERROR<<"retrive error :"<<mysql_error(mysql);
@@ -151,10 +147,8 @@ string MysqlDataBase::parseMessageAndOperation(const ConnectionMap& connMap,cons
         auto it = rec.find('\t');
         char name[20];
         strcpy(name,rec.substr(1,it-1).c_str());
-        std::string str(name);
         char password[30];
         strcpy(password,rec.substr(it+1, rec.size()-1).c_str());
-
         char query[100];
         sprintf(query, "select password from UserInfo where username = '%s'",name);
         sqlQuery(query);
@@ -170,33 +164,14 @@ string MysqlDataBase::parseMessageAndOperation(const ConnectionMap& connMap,cons
             
             if(strcmp(sqlrow[0], password) == 0)
             {
-
                 strclientmsg += "LOG IN SUCCESS";
-
-                std::cout<<conn->name();
+				std::string namestr(name);
+				nameMap_.insert(make_pair(conn,namestr));
+                //std::cout<<conn->name();
                 //登录成功
+
                 mysql_free_result(res_ptr);
-                memset(query, 0, sizeof(query));
-                auto it=connMap.find(conn);
-                int connid=it->second;
-                sprintf(query,"select connid from UserInfo where username='%s'",name);
-				int ret=sqlQuery(query);
-                if(ret == -1)
-                {
-                    LOG_ERROR<<"select error :"<<mysql_error(mysql);
-                }
-                res_ptr=mysql_store_result(mysql);
-                sqlrow=mysql_fetch_row(res_ptr);
-                if(connid!=atoi(sqlrow[0]))
-                {
-                    memset(query, 0, sizeof(query));
-                    sprintf(query,"update UserInfo set connid=%d where username='%s'",connid,name);
-                    ret=sqlQuery(query);
-                    if(ret == -1)
-                    {
-                        LOG_ERROR<<"update error :"<<mysql_error(mysql);
-                    }
-                }
+                
 				memset(query,0,sizeof(query));
                 sprintf(query,"update UserInfo set online=%d where username='%s'",1,name);
                 sqlQuery(query);
@@ -211,7 +186,7 @@ string MysqlDataBase::parseMessageAndOperation(const ConnectionMap& connMap,cons
             }
 
         }
-        mysql_free_result(res_ptr);//一次store对应一次free，多次free会出现double free or corruption (!prev) core dumped!
+        //mysql_free_result(res_ptr);//一次store对应一次free，多次free会出现double free or corruption (!prev) core dumped!
     }
     else if(buff[0]==FRIENDSLIST)
     {
@@ -356,16 +331,11 @@ string MysqlDataBase::parseMessageAndOperation(const ConnectionMap& connMap,cons
             }
             else
             {
-                memset(query,0,sizeof(query));
-                sprintf(query,"select connid from UserInfo where username='%s'",toname);
-                sqlQuery(query);
-                res_ptr=mysql_store_result(mysql);
-                sqlrow=mysql_fetch_row(res_ptr);
-                int connid=atoi(sqlrow[0]);
-                muduo::net::TcpConnectionPtr Connection;
-                for(auto it=connMap.begin();it!=connMap.end();++it)
+				TcpConnectionPtr Connection;
+				std::string namestr(toname);
+				for(auto it=nameMap_.begin();it!=nameMap_.end();++it)
                 {
-                    if(it->second==connid)
+                    if(it->second==namestr)
                     {
                         Connection=it->first;
                     }
@@ -379,7 +349,7 @@ string MysqlDataBase::parseMessageAndOperation(const ConnectionMap& connMap,cons
                 //std::cout<<"msg: "<<msg<<std::endl;
                 Connection->send(msg);
                 strclientmsg+="message has been sended";
-                mysql_free_result(res_ptr);
+                //mysql_free_result(res_ptr);
             }
         }
     }
@@ -392,7 +362,6 @@ string MysqlDataBase::parseMessageAndOperation(const ConnectionMap& connMap,cons
         char toname[20];
         char query1[100];
         char query2[100];
-        char query[100];
         int ret;
         strcpy(fromname,rec.substr(1,it-1).c_str());
         strcpy(toname,rec.substr(it+1,rec.size()-(it+19)).c_str());
@@ -402,63 +371,45 @@ string MysqlDataBase::parseMessageAndOperation(const ConnectionMap& connMap,cons
         memset(query2,0,sizeof(query2));
         sprintf(query1,"insert into %s values('%s')",fromname,toname);
         sprintf(query2,"insert into %s values('%s')",toname,fromname);
-        sprintf(query,"select connid from UserInfo where username='%s'",fromname);
+
         ret=sqlQuery(query1);
         ret=sqlQuery(query2);
-        sqlQuery(query);
-        res_ptr=mysql_store_result(mysql);
-        sqlrow=mysql_fetch_row(res_ptr);
-        int connid=atoi(sqlrow[0]);
-        muduo::net::TcpConnectionPtr Connection;
-        for(auto it=connMap.begin();it!=connMap.end();++it)
-        {
-            if(it->second==connid)
-            {
-                Connection=it->first;
-            }
-        }
+        
         if(ret == -1)
         {
             LOG_ERROR<<"insert error :"<<mysql_error(mysql);
         }
         std::string str="*ACCEPT.";
-
+		TcpConnectionPtr Connection;
+		std::string namestr(fromname);
+		for(auto it=nameMap_.begin();it!=nameMap_.end();++it)
+		{
+			if(it->second==namestr)
+			{
+				Connection=it->first;
+			}
+		}
         Connection->send(str);
         strclientmsg+=buff;
-        mysql_free_result(res_ptr);
+        //mysql_free_result(res_ptr);
     }
     else if(buff[0]==REFUSE)
     {
 
         std::string rec(buff);
         char fromname[20];
-        char query[100];
-        int ret;
         strcpy(fromname,rec.substr(1,rec.size()-1).c_str());
-        sprintf(query,"select connid from UserInfo where username='%s'",fromname);
-        ret=sqlQuery(query);
-        if(ret==-1)
-        {
-            LOG_ERROR<<"select error :"<<mysql_error(mysql);
-        }
-        res_ptr=mysql_store_result(mysql);
-        sqlrow=mysql_fetch_row(res_ptr);
-        if(!sqlrow)
-        {
-            LOG_INFO<<"server msg:"<<"there is no user called "<<fromname<<" in database UserInfo";
-        }
-        int connid=atoi(sqlrow[0]);
-        muduo::net::TcpConnectionPtr Connection;
-        for(auto it=connMap.begin();it!=connMap.end();++it)
-        {
-            if(it->second==connid)
-            {
-                Connection=it->first;
-            }
-        }
         std::string msg="your requet had been refused...";
+		TcpConnectionPtr Connection;
+		std::string namestr(fromname);
+		for(auto it=nameMap_.begin();it!=nameMap_.end();++it)
+		{
+			if(it->second==namestr)
+			{
+				Connection=it->first;
+			}
+		}
         Connection->send(msg);
-        mysql_free_result(res_ptr);
     }
     else
     {
