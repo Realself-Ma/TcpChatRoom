@@ -65,7 +65,7 @@ sudo apt-get install libmysqlclient-dev[开发包，不安装会提示找不到m
  2.加入了压力测试代码-ChatRoom_loadtest.cc，可以进行压力测试
 	
  ![压力测试](https://img-blog.csdnimg.cn/20191222112523138.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzQzMzY1ODI1,size_16,color_FFFFFF,t_70)
-	3.加入了自动重启服务端程序的Shell脚本-restart.sh,可实现自动重启程序，配				  合·screen 命令，可以实现服务器的常态运行
+	3.加入了自动重启服务端程序的Shell脚本-restart.sh,可实现自动重启程序，配合screen 命令，可以实现服务器的常态运行
  
  
  参考了muduo网络库 https://github.com/chenshuo/muduo
