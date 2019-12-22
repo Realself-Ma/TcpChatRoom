@@ -57,11 +57,15 @@ sudo apt-get install libmysqlclient-dev[开发包，不安装会提示找不到m
 服务器IP为云服务器IP，这样可以保证公网下的用户都能连接上，测试时要修改为你的本地IP，客户端，服务器端都要改
 
 
- - **2019/12/19日更新-基于muduo网络库重构服务端代码**
+- **2019/12/19日更新-基于muduo网络库重构服务端代码**
+![多用户同时在线](https://img-blog.csdnimg.cn/20191222111142621.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzQzMzY1ODI1,size_16,color_FFFFFF,t_70)
 
- 1.并发连接数增加，业务逻辑与服务逻辑区分开，客户端的默认端口是2019
+ 	1.并发连接数增加，业务逻辑与服务逻辑区分开，客户端的默认端口是2019
  
- 2.加入了压力测试代码
+ 	2.加入了压力测试代码-ChatRoom_loadtest.cc，可以进行压力测试
+ 	![在这里插入图片描述](https://img-blog.csdnimg.cn/20191222112035105.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzQzMzY1ODI1,size_16,color_FFFFFF,t_70)
+	
+	3.加入了自动重启服务端程序的Shell脚本-restart.sh,可实现自动重启程序，配				  合·screen 命令，可以实现服务器的常态运行
  
  
  参考了muduo网络库 https://github.com/chenshuo/muduo
