@@ -1,0 +1,13 @@
+1.sudo mysql -u root -p 你的root密码 登录mysql
+2.创建数据库ChatRoom 	create database ChatRoom DEFAULT CHARSET utf8 COLLATE utf8_general_ci;
+创建完成后，用 show databases； 命令查看数据库是否创建成功
+3.进入刚创建的数据  use ChatRoom;	进入数据库
+4.创建用户信息表
+CREATE TABLE `UserInfo` (
+  `username` varchar(20) DEFAULT NULL,
+  `password` varchar(30) DEFAULT NULL,
+  `clientfd` int(11) DEFAULT NULL,
+  `online` int(11) DEFAULT NULL,
+  `pic` int(11) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+5.show tables;	查看表是否创建成功

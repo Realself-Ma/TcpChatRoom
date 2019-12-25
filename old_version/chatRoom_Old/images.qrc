@@ -1,0 +1,17 @@
+<RCC>
+    <qresource prefix="/">
+        <file>images/ChatRoom.jpg</file>
+        <file>images/1.png</file>
+        <file>images/qq.png</file>
+        <file>images/w.png</file>
+        <file>images/l.png</file>
+        <file>images/z.png</file>
+        <file>images/zz.png</file>
+        <file>images/m.png</file>
+        <file>images/boss.png</file>
+        <file>images/jj.png</file>
+        <file>images/jj2.png</file>
+        <file>images/m2.png</file>
+        <file>images/w2.png</file>
+    </qresource>
+</RCC>
