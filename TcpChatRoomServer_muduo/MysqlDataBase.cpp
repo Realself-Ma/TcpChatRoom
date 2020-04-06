@@ -169,7 +169,7 @@ string MysqlDataBase::parseMessageAndOperation(const TcpConnectionPtr& conn,cons
 				nameMap_.insert(make_pair(conn,namestr));
                 //std::cout<<conn->name();
                 //登录成功
-
+                //continue;
                 mysql_free_result(res_ptr);
                 
 				memset(query,0,sizeof(query));
