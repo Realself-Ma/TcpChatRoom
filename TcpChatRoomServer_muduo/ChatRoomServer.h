@@ -21,7 +21,7 @@ public:
 	void onMessage(const TcpConnectionPtr& conn,Buffer* buf,Timestamp time);
 	void start();
 private:
-	int connid;
+
 	void send(const TcpConnectionPtr& conn,string& sendmsg,Timestamp time);
 	void broadcast(const string& msg);
 	typedef std::set<TcpConnectionPtr> ConnectionSet;
