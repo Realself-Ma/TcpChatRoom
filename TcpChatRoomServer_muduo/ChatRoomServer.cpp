@@ -1,6 +1,6 @@
 #include "ChatRoomServer.h"
 
-ChatRoomServer::ChatRoomServer(EventLoop* loop,const InetAddress& listenAddr):connid(0),_server(loop,listenAddr,"ChatRoomServer")
+ChatRoomServer::ChatRoomServer(EventLoop* loop,const InetAddress& listenAddr):_server(loop,listenAddr,"ChatRoomServer")
 {
 	_server.setConnectionCallback(std::bind(&ChatRoomServer::onConnection,this,_1));
 	_server.setMessageCallback(std::bind(&ChatRoomServer::onMessage,this,_1,_2,_3));
@@ -38,7 +38,6 @@ void ChatRoomServer::onConnection(const TcpConnectionPtr& conn)
 	}
 	else
 	{
-		--connid;
 		_Mysql.doOffline(conn);
 		_connections.erase(conn);
 	}
