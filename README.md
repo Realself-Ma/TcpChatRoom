@@ -1,4 +1,4 @@
-# [:frog:基于云服务器的TCP网络聊天室](https://github.com/Realself-Ma/Maze-Dungeon)
+# [:frog:基于云服务器的TCP网络聊天室](https://github.com/Realself-Ma/TcpChatRoom)
 > 客户端Qt5.6开发，后台服务器基于muduo网络库实现，Mysql数据库管理用户信息
 >
 
