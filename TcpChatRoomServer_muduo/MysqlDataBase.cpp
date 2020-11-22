@@ -67,9 +67,16 @@ int MysqlDataBase::sqlQuery(const char *query)
 }
 void MysqlDataBase::doOffline(const TcpConnectionPtr& conn)
 {
-	auto it=nameMap_.find(conn);
+	std::string name;
+	for(auto it=nameMap_.begin();it!=nameMap_.end();++it)
+	{
+		if(it->second==conn)
+		{
+			name=it->first;
+		}
+	}
 	char query[100];
-	snprintf(query,sizeof(query),"select online from UserInfo where username='%s'",(it->second).c_str());
+	snprintf(query,sizeof(query),"select online from UserInfo where username='%s'",name.c_str());
 	int ret=sqlQuery(query);
 	if(ret==-1)
 	{
@@ -80,7 +87,7 @@ void MysqlDataBase::doOffline(const TcpConnectionPtr& conn)
 	if(sqlrow&&(atoi(sqlrow[0])==1))
 	{
 		memset(query,0,sizeof(query));
-		snprintf(query,sizeof(query),"update UserInfo set online=%d where username='%s'",0,(it->second).c_str());
+		snprintf(query,sizeof(query),"update UserInfo set online=%d where username='%s'",0,name.c_str());
 		ret=sqlQuery(query);
 		if(ret==-1)
 		{
@@ -88,7 +95,7 @@ void MysqlDataBase::doOffline(const TcpConnectionPtr& conn)
 		}
 	}
 	mysql_free_result(res_ptr);
-	nameMap_.erase(conn);
+	nameMap_.erase(name);
 }
 string MysqlDataBase::parseMessageAndOperation(const TcpConnectionPtr& conn,const string& buff)
 {
@@ -194,7 +201,7 @@ string MysqlDataBase::parseMessageAndOperation(const TcpConnectionPtr& conn,cons
             {
                 strclientmsg += "LOG IN SUCCESS";
 				std::string namestr(name);
-				nameMap_.insert(make_pair(conn,namestr));
+				nameMap_.insert(make_pair(namestr,conn));
                 //std::cout<<conn->name();
                 //登录成功
                 //continue;
@@ -360,23 +367,20 @@ string MysqlDataBase::parseMessageAndOperation(const TcpConnectionPtr& conn,cons
             {
 				TcpConnectionPtr Connection;
 				std::string namestr(toname);
-				for(auto it=nameMap_.begin();it!=nameMap_.end();++it)
-                {
-                    if(it->second==namestr)
-                    {
-                        Connection=it->first;
-                    }
-                }
-                std::string msg;
-                msg+="*AdDR. ";
-
-                char tempstr[20];
-                sprintf(tempstr,"%s+%s",fromname,toname);
-                msg+=tempstr;
-                //std::cout<<"msg: "<<msg<<std::endl;
-                Connection->send(msg);
-                strclientmsg+="message has been sended";
-                //mysql_free_result(res_ptr);
+				if(nameMap_.count(namestr))
+				{
+					Connection=nameMap_[namestr];
+					std::string msg;
+					msg+="*AdDR. ";
+					char tempstr[20];
+					sprintf(tempstr,"%s+%s",fromname,toname);
+					msg+=tempstr;
+					//std::cout<<"msg: "<<msg<<std::endl;
+					Connection->send(msg);
+					strclientmsg+="message has been sended";
+				}
+				else
+					LOG_ERROR<<"nameMap_ find user error in ADDFRIEND";
             }
         }
     }
@@ -409,16 +413,14 @@ string MysqlDataBase::parseMessageAndOperation(const TcpConnectionPtr& conn,cons
         std::string str="*ACCEPT.";
 		TcpConnectionPtr Connection;
 		std::string namestr(fromname);
-		for(auto it=nameMap_.begin();it!=nameMap_.end();++it)
+		if(nameMap_.count(namestr))
 		{
-			if(it->second==namestr)
-			{
-				Connection=it->first;
-			}
+			Connection=nameMap_[namestr];
+			Connection->send(str);
+			strclientmsg+=buff;
 		}
-        Connection->send(str);
-        strclientmsg+=buff;
-        //mysql_free_result(res_ptr);
+		else
+			LOG_ERROR<<"nameMap_ find user error in ACCEPT";
     }
     else if(buff[0]==REFUSE)
     {
@@ -429,14 +431,13 @@ string MysqlDataBase::parseMessageAndOperation(const TcpConnectionPtr& conn,cons
         std::string msg="your requet had been refused...";
 		TcpConnectionPtr Connection;
 		std::string namestr(fromname);
-		for(auto it=nameMap_.begin();it!=nameMap_.end();++it)
+		if(nameMap_.count(namestr))
 		{
-			if(it->second==namestr)
-			{
-				Connection=it->first;
-			}
-		}
-        Connection->send(msg);
+			Connection=nameMap_[namestr];
+			Connection->send(msg);
+		}			
+		else
+			LOG_ERROR<<"nameMap_ find user error in REFUSE";
     }
     else
     {

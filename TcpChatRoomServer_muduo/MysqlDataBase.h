@@ -12,7 +12,7 @@
 #include "command.h"
 using muduo::string;
 using namespace muduo::net;
-typedef std::map<TcpConnectionPtr,std::string> ConnectionMap;
+typedef std::map<std::string,TcpConnectionPtr> ConnectionMap;
 class MysqlDataBase
 {
 public:
