@@ -2,38 +2,66 @@
 #include "muduo/base/Logging.h"
 int MysqlDataBase::connect()
 {
-    mysql = mysql_init(NULL);//数据库初始化
+	mysql = mysql_init(NULL);//数据库初始化
     if(!mysql)
     {
         LOG_ERROR<<"mysql init falied";
         return -1;
     }
-
-    mysql = mysql_real_connect(mysql,IP, "root", "140226", "ChatRoom", 0, NULL, 0);//连接到数据库
+	if(real_connect())
+	{
+        LOG_ERROR<<"mysql real_connect falied";
+        return -1;		
+	}
+	
+    return 0;
+}
+int MysqlDataBase::real_connect()
+{
+	mysql = mysql_real_connect(mysql,IP, "root", "140226", "ChatRoom", 0, NULL, 0);//连接到数据库
 
     if(mysql)
     {
         LOG_INFO<<"MySQL connection success";
+		int res=mysql_query(mysql, "set names utf8");//设置查询字符集为utf8
+		if(res!=0)
+		{
+			LOG_INFO<<"mysql_query set utf8 error";
+			return -1;
+		}
+		else
+			LOG_INFO<<"MySQL set utf8 success";
     }
     else
     {
         LOG_WARN<<" MySQL connection failed";
         return -1;
     }
-    return 0;
+	return 0;
 }
 int MysqlDataBase::sqlQuery(const char *query)
 {
-	int res=mysql_query(mysql, "set names utf8");//设置查询字符集为utf8
-	if(res!=0)
-	{
-		LOG_INFO<<"mysql_query set utf8 error";
-		return -1;
-	}
-    res=mysql_query(mysql,query);
+    int res=mysql_query(mysql,query);
     if(res)
     {
-        return -1;
+		int flag=mysql_errno(mysql);
+		if(flag==CR_SERVER_LOST)
+		{
+			if(real_connect())
+			{	
+				LOG_ERROR<<"retry real_connect falied";
+				return -1;		
+			}
+			else
+			{
+				LOG_INFO<<"retry real_connect success";
+				res=mysql_query(mysql,query);
+				if(res)
+					return -1;
+			}
+		}
+		else
+			return -1;
     }
     return 0;
 }
@@ -170,7 +198,6 @@ string MysqlDataBase::parseMessageAndOperation(const TcpConnectionPtr& conn,cons
                 //std::cout<<conn->name();
                 //登录成功
                 //continue;
-                mysql_free_result(res_ptr);
                 
 				memset(query,0,sizeof(query));
                 sprintf(query,"update UserInfo set online=%d where username='%s'",1,name);
@@ -186,7 +213,7 @@ string MysqlDataBase::parseMessageAndOperation(const TcpConnectionPtr& conn,cons
             }
 
         }
-        //mysql_free_result(res_ptr);//一次store对应一次free，多次free会出现double free or corruption (!prev) core dumped!
+        mysql_free_result(res_ptr);//一次store对应一次free，多次free会出现double free or corruption (!prev) core dumped!
     }
     else if(buff[0]==FRIENDSLIST)
     {

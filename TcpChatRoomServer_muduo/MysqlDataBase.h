@@ -1,6 +1,7 @@
 #ifndef MYSQLDATABASE_H
 #define MYSQLDATABASE_H
 #include "mysql/mysql.h"
+#include "mysql/errmsg.h"
 #include "muduo/net/TcpConnection.h"
 #include <string.h>
 #include <string>
@@ -17,6 +18,7 @@ class MysqlDataBase
 public:
 	MysqlDataBase():mysql(nullptr),res_ptr(nullptr),sqlrow(0){}
 	int connect();
+	int real_connect();
 	int sqlQuery(const char *query);
 	string parseMessageAndOperation(const TcpConnectionPtr& conn,const string& msg);
 	void doOffline(const TcpConnectionPtr& conn);
